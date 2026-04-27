@@ -1,9 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, Link } from "react-router-dom";
-import { BrowserMultiFormatReader } from "@zxing/browser";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import * as XLSX from "xlsx";
 import "./styles.css";
 
 const API = import.meta.env.VITE_API_URL || "http://3.88.51.188:8000/api/v1";
@@ -138,9 +135,11 @@ function Innovations() {
 
 function AdminDash() {
   const [s, setS] = React.useState(null);
+  const [charts, setCharts] = React.useState(null);
   React.useEffect(() => { api("/dashboard/admin").then(setS); }, []);
+  React.useEffect(() => { import("recharts").then(setCharts); }, []);
   const data = s ? [{ n: "Disponibles", v: s.available_items }, { n: "En uso", v: s.in_use_items }, { n: "Mantenimiento", v: s.maintenance_items }, { n: "Eventos", v: s.active_events }] : [];
-  return <P admin permission="dashboard"><Shell title="Dashboard administrativo"><DescriptionCard title="Descripción de esta función" description="Aquí visualizas métricas clave para tomar decisiones rápidas de operación y mantenimiento." />{!s ? <div className="card">Cargando...</div> : <><div className="stats">{["clients", "items", "active_events", "checklists_pending", "contracts", "backups"].map((k) => <div className="stat" key={k}><b>{s[k]}</b><span>{k}</span></div>)}</div><div className="card"><ResponsiveContainer width="100%" height={250}><BarChart data={data}><XAxis dataKey="n" /><YAxis /><Tooltip /><Bar dataKey="v" /></BarChart></ResponsiveContainer></div></>}</Shell></P>;
+  return <P admin permission="dashboard"><Shell title="Dashboard administrativo"><DescriptionCard title="Descripción de esta función" description="Aquí visualizas métricas clave para tomar decisiones rápidas de operación y mantenimiento." />{!s ? <div className="card">Cargando...</div> : <><div className="stats">{["clients", "items", "active_events", "checklists_pending", "contracts", "backups"].map((k) => <div className="stat" key={k}><b>{s[k]}</b><span>{k}</span></div>)}</div><div className="card">{charts ? <charts.ResponsiveContainer width="100%" height={250}><charts.BarChart data={data}><charts.XAxis dataKey="n" /><charts.YAxis /><charts.Tooltip /><charts.Bar dataKey="v" /></charts.BarChart></charts.ResponsiveContainer> : <p>Cargando gráfico...</p>}</div></>}</Shell></P>;
 }
 
 function Scanner({ admin = false }) {
@@ -153,6 +152,7 @@ function Scanner({ admin = false }) {
   }
   async function start() {
     try {
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const r = new BrowserMultiFormatReader();
       await r.decodeFromVideoDevice(undefined, v.current, (res, e, ctrl) => {
         if (res) lookup(res.getText());
@@ -308,6 +308,7 @@ function Crud({ title, ep, fields, admin = false, permission = "leer", itemMode 
     if (!file) return;
     try {
       const data = await file.arrayBuffer();
+      const XLSX = await import("xlsx");
       const wb = XLSX.read(data, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const parsed = XLSX.utils.sheet_to_json(ws, { defval: "" });

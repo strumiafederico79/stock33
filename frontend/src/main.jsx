@@ -251,8 +251,20 @@ function Crud({ title, ep, fields, admin = false, permission = "leer", itemMode 
   const [area, setArea] = React.useState("sonido");
   const [subcat, setSubcat] = React.useState(AREAS.sonido[0]);
   const [editId, setEditId] = React.useState(null);
+  const [page, setPage] = React.useState(0);
+  const PAGE_SIZE = 100;
 
-  React.useEffect(() => { api(ep).then(setRows); }, [ep]);
+  async function loadRows(search = q, targetPage = page) {
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(targetPage * PAGE_SIZE) });
+    if (search.trim()) params.set("q", search.trim());
+    setRows(await api(`${ep}?${params.toString()}`));
+  }
+
+  React.useEffect(() => {
+    const t = setTimeout(() => { loadRows(q, page); }, 250);
+    return () => clearTimeout(t);
+  }, [ep, q, page]);
+
   React.useEffect(() => { setSubcat(AREAS[area][0]); }, [area]);
 
   async function sub(e) {
@@ -278,7 +290,7 @@ function Crud({ title, ep, fields, admin = false, permission = "leer", itemMode 
     e.currentTarget.reset();
   }
 
-  const filtered = rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q.toLowerCase()));
+  const filtered = rows;
 
   function exp() {
     if (!can("exportar")) return alert("No tienes permiso para exportar.");
@@ -305,8 +317,7 @@ function Crud({ title, ep, fields, admin = false, permission = "leer", itemMode 
         try { await api(ep, { method: "POST", body: JSON.stringify(payload) }); ok += 1; } catch {}
       }
       setMassStatus(`Importación finalizada: ${ok} de ${parsed.length} registros creados.`);
-      const newest = await api(ep);
-      setRows(newest);
+      await loadRows();
     } catch {
       setMassStatus("No se pudo importar el archivo. Verifica columnas y formato.");
     }
@@ -351,8 +362,13 @@ function Crud({ title, ep, fields, admin = false, permission = "leer", itemMode 
             {itemMode && lastItem && can("etiquetas") && <><div className="label-preview"><img alt="Etiqueta equipo" src={generateLabelSVG(lastItem)} /></div><button type="button" onClick={printLabel}>Generar e imprimir QR/Barras</button></>}
           </form>
           <div className="card">
-            <div className="tools"><input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} /><button type="button" onClick={exp}>Exportar JSON</button></div>
+            <div className="tools"><input placeholder="Buscar (server-side)..." value={q} onChange={(e) => { setPage(0); setQ(e.target.value); }} /><button type="button" onClick={exp}>Exportar JSON</button></div>
             {can("importar") && <div className="importer"><label>Importación masiva Excel/CSV</label><input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => importMassive(e.target.files?.[0])} />{massStatus && <p>{massStatus}</p>}</div>}
+            <div className="row-actions" style={{ marginTop: "0.75rem" }}>
+              <button type="button" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>Anterior</button>
+              <span>Página {page + 1}</span>
+              <button type="button" onClick={() => setPage(page + 1)} disabled={rows.length < PAGE_SIZE}>Siguiente</button>
+            </div>
             {filtered.map((r) => <div className="row-card" key={r.id}><pre>{JSON.stringify(r, null, 2)}</pre><div className="row-actions">{can("editar") && <button type="button" onClick={() => fillEdit(r)}>Editar</button>}{can("eliminar") && <button type="button" onClick={() => removeRow(r.id)}>Eliminar</button>}</div></div>)}
             {!filtered.length && <p>Sin resultados para tu búsqueda.</p>}
           </div>

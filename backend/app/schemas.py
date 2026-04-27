@@ -11,6 +11,16 @@ class LoginRequest(BaseModel):
 class UserRead(BaseModel):
     id: int; username: str; full_name: str; role: str; is_active: bool
     class Config: from_attributes = True
+class UserCreate(BaseModel):
+    username: str
+    full_name: str
+    password: str
+    role: str = "operator"
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class ClientCreate(BaseModel):
     name: str; company_name: Optional[str]=None; phone: Optional[str]=None; email: Optional[str]=None; address: Optional[str]=None; notes: Optional[str]=None

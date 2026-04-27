@@ -35,6 +35,12 @@ body[data-theme="claro"] .innovation-item span{color:#1e40af}
 .label-preview img{width:100%;background:#fff;border-radius:10px;border:1px solid #94a3b8}
 .signature canvas{width:100%;max-width:420px;border:1px dashed #64748b;border-radius:8px;background:#fff;touch-action:none}
 .signature-actions{display:flex;gap:10px}
+.row-card{border:1px solid #334155;border-radius:10px;padding:8px;margin-bottom:10px}
+.row-actions{display:flex;gap:8px;justify-content:flex-end}
+.line-row{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #334155}
+.logo-preview{max-width:220px;max-height:70px;object-fit:contain;background:#fff;border-radius:8px;padding:6px}
+.qtable{width:100%;border-collapse:collapse}
+.qtable th,.qtable td{border:1px solid #475569;padding:6px;text-align:left;font-size:13px}
 .checks{display:grid;grid-template-columns:1fr 1fr;gap:4px}
 .checks label{display:flex;gap:6px;align-items:center}
 .err{color:#fca5a5}

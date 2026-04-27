@@ -32,7 +32,11 @@ def dashboard(db: Session = Depends(get_db), user = Depends(require_admin)):
     }
 
 @router.get("/clients", response_model=list[ClientRead])
-def clients(db: Session=Depends(get_db), user=Depends(get_current_user)): return db.query(Client).order_by(Client.name).all()
+def clients(q: str|None=None, limit: int=100, offset: int=0, db: Session=Depends(get_db), user=Depends(get_current_user)):
+    query=db.query(Client)
+    if q:
+        like=f"%{q}%"; query=query.filter((Client.name.like(like)) | (Client.company_name.like(like)) | (Client.email.like(like)) | (Client.phone.like(like)))
+    return query.order_by(Client.name).offset(offset).limit(limit).all()
 @router.post("/clients", response_model=ClientRead)
 def create_client(p: ClientCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
     o=Client(**p.model_dump()); db.add(o); db.commit(); db.refresh(o); return o
@@ -49,11 +53,11 @@ def delete_client(client_id:int, db: Session=Depends(get_db), user=Depends(get_c
     db.delete(o); db.commit(); return {"ok":True}
 
 @router.get("/items", response_model=list[ItemRead])
-def items(q: str|None=None, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def items(q: str|None=None, limit: int=100, offset: int=0, db: Session=Depends(get_db), user=Depends(get_current_user)):
     query=db.query(Item)
     if q:
         like=f"%{q}%"; query=query.filter((Item.code.like(like)) | (Item.qr_code.like(like)) | (Item.barcode.like(like)) | (Item.name.like(like)))
-    return query.order_by(Item.name).all()
+    return query.order_by(Item.name).offset(offset).limit(limit).all()
 @router.post("/items", response_model=ItemRead)
 def create_item(p: ItemCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
     data=p.model_dump(); data["qr_code"]=data.get("qr_code") or data["code"]; o=Item(**data); db.add(o); db.commit(); db.refresh(o)
@@ -77,10 +81,14 @@ def scan(code: str, db: Session=Depends(get_db), user=Depends(get_current_user))
     if not o: raise HTTPException(status_code=404, detail="Equipo no encontrado")
     db.add(ItemHistory(item_id=o.id, source="SCAN", description=f"Escaneo: {code}", created_by=user.username)); db.commit(); return o
 @router.get("/items/{item_id}/history", response_model=list[HistoryRead])
-def history(item_id:int, db: Session=Depends(get_db), user=Depends(get_current_user)): return db.query(ItemHistory).filter(ItemHistory.item_id==item_id).order_by(ItemHistory.created_at.desc()).all()
+def history(item_id:int, limit: int=200, offset: int=0, db: Session=Depends(get_db), user=Depends(get_current_user)): return db.query(ItemHistory).filter(ItemHistory.item_id==item_id).order_by(ItemHistory.created_at.desc()).offset(offset).limit(limit).all()
 
 @router.get("/events", response_model=list[EventRead])
-def events(db: Session=Depends(get_db), user=Depends(get_current_user)): return db.query(Event).order_by(Event.start_date.desc()).all()
+def events(q: str|None=None, limit: int=100, offset: int=0, db: Session=Depends(get_db), user=Depends(get_current_user)):
+    query=db.query(Event)
+    if q:
+        like=f"%{q}%"; query=query.filter((Event.name.like(like)) | (Event.location.like(like)) | (Event.operator_name.like(like)))
+    return query.order_by(Event.start_date.desc()).offset(offset).limit(limit).all()
 @router.post("/events", response_model=EventRead)
 def create_event(p: EventCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
     o=Event(**p.model_dump()); db.add(o); db.commit(); db.refresh(o); return o
@@ -97,7 +105,11 @@ def delete_event(event_id:int, db: Session=Depends(get_db), user=Depends(get_cur
     db.delete(o); db.commit(); return {"ok":True}
 
 @router.get("/checklists", response_model=list[ChecklistRead])
-def checklists(db: Session=Depends(get_db), user=Depends(get_current_user)): return db.query(TechnicalChecklist).order_by(TechnicalChecklist.created_at.desc()).all()
+def checklists(q: str|None=None, limit: int=100, offset: int=0, db: Session=Depends(get_db), user=Depends(get_current_user)):
+    query=db.query(TechnicalChecklist)
+    if q:
+        like=f"%{q}%"; query=query.filter((TechnicalChecklist.title.like(like)) | (TechnicalChecklist.status.like(like)) | (TechnicalChecklist.performed_by.like(like)))
+    return query.order_by(TechnicalChecklist.created_at.desc()).offset(offset).limit(limit).all()
 @router.post("/checklists", response_model=ChecklistRead)
 def create_checklist(p: ChecklistCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
     o=TechnicalChecklist(**p.model_dump(), checks_json="[]"); db.add(o); db.commit(); db.refresh(o)
@@ -116,7 +128,11 @@ def delete_checklist(checklist_id:int, db: Session=Depends(get_db), user=Depends
     db.delete(o); db.commit(); return {"ok":True}
 
 @router.get("/contracts", response_model=list[ContractRead])
-def contracts(db: Session=Depends(get_db), user=Depends(get_current_user)): return db.query(ContractDocument).order_by(ContractDocument.created_at.desc()).all()
+def contracts(q: str|None=None, limit: int=100, offset: int=0, db: Session=Depends(get_db), user=Depends(get_current_user)):
+    query=db.query(ContractDocument)
+    if q:
+        like=f"%{q}%"; query=query.filter((ContractDocument.title.like(like)) | (ContractDocument.document_number.like(like)) | (ContractDocument.status.like(like)))
+    return query.order_by(ContractDocument.created_at.desc()).offset(offset).limit(limit).all()
 @router.post("/contracts", response_model=ContractRead)
 def create_contract(p: ContractCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
     number=datetime.utcnow().strftime("CTR-%Y%m%d-%H%M%S"); path=f"/data/contracts/{number}.pdf"; url=f"{settings.public_base_url}:8000/static/contracts/{number}.pdf"
@@ -139,7 +155,7 @@ def delete_contract(contract_id:int, db: Session=Depends(get_db), user=Depends(g
     db.delete(o); db.commit(); return {"ok":True}
 
 @router.get("/backups", response_model=list[BackupRead])
-def backups(db: Session=Depends(get_db), user=Depends(require_admin)): return db.query(BackupRecord).order_by(BackupRecord.created_at.desc()).all()
+def backups(limit: int=100, offset: int=0, db: Session=Depends(get_db), user=Depends(require_admin)): return db.query(BackupRecord).order_by(BackupRecord.created_at.desc()).offset(offset).limit(limit).all()
 @router.post("/backups/run", response_model=BackupRead)
 def run_backup(db: Session=Depends(get_db), user=Depends(require_admin)):
     Path("/data/backups").mkdir(parents=True, exist_ok=True)

@@ -34,16 +34,16 @@ def dashboard(db: Session = Depends(get_db), user = Depends(require_admin)):
 @router.get("/clients", response_model=list[ClientRead])
 def clients(db: Session=Depends(get_db), user=Depends(get_current_user)): return db.query(Client).order_by(Client.name).all()
 @router.post("/clients", response_model=ClientRead)
-def create_client(p: ClientCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def create_client(p: ClientCreate, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=Client(**p.model_dump()); db.add(o); db.commit(); db.refresh(o); return o
 @router.put("/clients/{client_id}", response_model=ClientRead)
-def update_client(client_id:int, p: ClientCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def update_client(client_id:int, p: ClientUpdate, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=db.query(Client).filter(Client.id==client_id).first()
     if not o: raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    for k,v in p.model_dump().items(): setattr(o,k,v)
+    for k,v in p.model_dump(exclude_unset=True).items(): setattr(o,k,v)
     db.commit(); db.refresh(o); return o
 @router.delete("/clients/{client_id}")
-def delete_client(client_id:int, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def delete_client(client_id:int, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=db.query(Client).filter(Client.id==client_id).first()
     if not o: raise HTTPException(status_code=404, detail="Cliente no encontrado")
     db.delete(o); db.commit(); return {"ok":True}
@@ -55,19 +55,19 @@ def items(q: str|None=None, db: Session=Depends(get_db), user=Depends(get_curren
         like=f"%{q}%"; query=query.filter((Item.code.like(like)) | (Item.qr_code.like(like)) | (Item.barcode.like(like)) | (Item.name.like(like)))
     return query.order_by(Item.name).all()
 @router.post("/items", response_model=ItemRead)
-def create_item(p: ItemCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def create_item(p: ItemCreate, db: Session=Depends(get_db), user=Depends(require_admin)):
     data=p.model_dump(); data["qr_code"]=data.get("qr_code") or data["code"]; o=Item(**data); db.add(o); db.commit(); db.refresh(o)
     db.add(ItemHistory(item_id=o.id, source="ITEM", description=f"Alta de equipo {o.name}", created_by=user.username)); db.commit(); return o
 @router.put("/items/{item_id}", response_model=ItemRead)
-def update_item(item_id:int, p: ItemCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def update_item(item_id:int, p: ItemUpdate, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=db.query(Item).filter(Item.id==item_id).first()
     if not o: raise HTTPException(status_code=404, detail="Equipo no encontrado")
-    for k,v in p.model_dump().items(): setattr(o,k,v)
+    for k,v in p.model_dump(exclude_unset=True).items(): setattr(o,k,v)
     db.commit(); db.refresh(o)
     db.add(ItemHistory(item_id=o.id, source="ITEM", description=f"Edición de equipo {o.name}", created_by=user.username)); db.commit()
     return o
 @router.delete("/items/{item_id}")
-def delete_item(item_id:int, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def delete_item(item_id:int, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=db.query(Item).filter(Item.id==item_id).first()
     if not o: raise HTTPException(status_code=404, detail="Equipo no encontrado")
     db.delete(o); db.commit(); return {"ok":True}
@@ -82,16 +82,16 @@ def history(item_id:int, db: Session=Depends(get_db), user=Depends(get_current_u
 @router.get("/events", response_model=list[EventRead])
 def events(db: Session=Depends(get_db), user=Depends(get_current_user)): return db.query(Event).order_by(Event.start_date.desc()).all()
 @router.post("/events", response_model=EventRead)
-def create_event(p: EventCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def create_event(p: EventCreate, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=Event(**p.model_dump()); db.add(o); db.commit(); db.refresh(o); return o
 @router.put("/events/{event_id}", response_model=EventRead)
-def update_event(event_id:int, p: EventCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def update_event(event_id:int, p: EventUpdate, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=db.query(Event).filter(Event.id==event_id).first()
     if not o: raise HTTPException(status_code=404, detail="Evento no encontrado")
-    for k,v in p.model_dump().items(): setattr(o,k,v)
+    for k,v in p.model_dump(exclude_unset=True).items(): setattr(o,k,v)
     db.commit(); db.refresh(o); return o
 @router.delete("/events/{event_id}")
-def delete_event(event_id:int, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def delete_event(event_id:int, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=db.query(Event).filter(Event.id==event_id).first()
     if not o: raise HTTPException(status_code=404, detail="Evento no encontrado")
     db.delete(o); db.commit(); return {"ok":True}
@@ -99,18 +99,18 @@ def delete_event(event_id:int, db: Session=Depends(get_db), user=Depends(get_cur
 @router.get("/checklists", response_model=list[ChecklistRead])
 def checklists(db: Session=Depends(get_db), user=Depends(get_current_user)): return db.query(TechnicalChecklist).order_by(TechnicalChecklist.created_at.desc()).all()
 @router.post("/checklists", response_model=ChecklistRead)
-def create_checklist(p: ChecklistCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def create_checklist(p: ChecklistCreate, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=TechnicalChecklist(**p.model_dump(), checks_json="[]"); db.add(o); db.commit(); db.refresh(o)
     if o.item_id: db.add(ItemHistory(item_id=o.item_id, source="CHECKLIST", description=f"Checklist: {o.title}", created_by=user.username)); db.commit()
     return o
 @router.put("/checklists/{checklist_id}", response_model=ChecklistRead)
-def update_checklist(checklist_id:int, p: ChecklistCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def update_checklist(checklist_id:int, p: ChecklistUpdate, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=db.query(TechnicalChecklist).filter(TechnicalChecklist.id==checklist_id).first()
     if not o: raise HTTPException(status_code=404, detail="Checklist no encontrado")
-    for k,v in p.model_dump().items(): setattr(o,k,v)
+    for k,v in p.model_dump(exclude_unset=True).items(): setattr(o,k,v)
     db.commit(); db.refresh(o); return o
 @router.delete("/checklists/{checklist_id}")
-def delete_checklist(checklist_id:int, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def delete_checklist(checklist_id:int, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=db.query(TechnicalChecklist).filter(TechnicalChecklist.id==checklist_id).first()
     if not o: raise HTTPException(status_code=404, detail="Checklist no encontrado")
     db.delete(o); db.commit(); return {"ok":True}
@@ -118,7 +118,7 @@ def delete_checklist(checklist_id:int, db: Session=Depends(get_db), user=Depends
 @router.get("/contracts", response_model=list[ContractRead])
 def contracts(db: Session=Depends(get_db), user=Depends(get_current_user)): return db.query(ContractDocument).order_by(ContractDocument.created_at.desc()).all()
 @router.post("/contracts", response_model=ContractRead)
-def create_contract(p: ContractCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def create_contract(p: ContractCreate, db: Session=Depends(get_db), user=Depends(require_admin)):
     number=datetime.utcnow().strftime("CTR-%Y%m%d-%H%M%S"); path=f"/data/contracts/{number}.pdf"; url=f"{settings.public_base_url}:8000/static/contracts/{number}.pdf"
     client=db.query(Client).filter(Client.id==p.client_id).first() if p.client_id else None
     event=db.query(Event).filter(Event.id==p.event_id).first() if p.event_id else None
@@ -127,13 +127,13 @@ def create_contract(p: ContractCreate, db: Session=Depends(get_db), user=Depends
     o=ContractDocument(document_number=number,title=p.title,client_id=p.client_id,event_id=p.event_id,status=p.status,file_path=path,public_url=url,terms=p.terms,created_by=user.username)
     db.add(o); db.commit(); db.refresh(o); return o
 @router.put("/contracts/{contract_id}", response_model=ContractRead)
-def update_contract(contract_id:int, p: ContractCreate, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def update_contract(contract_id:int, p: ContractUpdate, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=db.query(ContractDocument).filter(ContractDocument.id==contract_id).first()
     if not o: raise HTTPException(status_code=404, detail="Contrato no encontrado")
-    for k,v in p.model_dump().items(): setattr(o,k,v)
+    for k,v in p.model_dump(exclude_unset=True).items(): setattr(o,k,v)
     db.commit(); db.refresh(o); return o
 @router.delete("/contracts/{contract_id}")
-def delete_contract(contract_id:int, db: Session=Depends(get_db), user=Depends(get_current_user)):
+def delete_contract(contract_id:int, db: Session=Depends(get_db), user=Depends(require_admin)):
     o=db.query(ContractDocument).filter(ContractDocument.id==contract_id).first()
     if not o: raise HTTPException(status_code=404, detail="Contrato no encontrado")
     db.delete(o); db.commit(); return {"ok":True}

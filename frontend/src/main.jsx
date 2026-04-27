@@ -15,6 +15,13 @@ const usr = () => {
     return null;
   }
 };
+const roleUsers = () => {
+  try {
+    return JSON.parse(localStorage.getItem("role_users") || "[]");
+  } catch {
+    return [];
+  }
+};
 
 const ROLE_PERMISSIONS = {
   admin: ["dashboard", "leer", "crear", "editar", "eliminar", "importar", "exportar", "firma", "etiquetas", "backups", "roles"],
@@ -43,8 +50,13 @@ async function api(path, opts = {}) {
 
 function can(permission) {
   const user = usr();
-  const base = ROLE_PERMISSIONS[user?.role] || [];
-  const custom = user?.permissions || [];
+  const ids = [user?.name, user?.full_name, user?.username, user?.email, user?.id]
+    .filter(Boolean)
+    .map((v) => String(v).trim().toLowerCase());
+  const localOverride = roleUsers().find((entry) => ids.includes(String(entry?.name || "").trim().toLowerCase()));
+  const effectiveRole = localOverride?.role || user?.role;
+  const base = ROLE_PERMISSIONS[effectiveRole] || [];
+  const custom = [...(user?.permissions || []), ...(localOverride?.permissions || [])];
   return [...new Set([...base, ...custom])].includes(permission);
 }
 

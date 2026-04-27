@@ -1,0 +1,20 @@
+services:
+  backend:
+    build: ./backend
+    container_name: stock-enterprise-v2-backend
+    env_file: .env
+    volumes:
+      - ./data:/data
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://54.90.207.192:8000/api/v1
+    container_name: stock-enterprise-v2-frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
